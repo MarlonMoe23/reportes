@@ -83,17 +83,15 @@ function App() {
       nuevosErrores.equipo = "El equipo debe tener al menos 3 caracteres.";
     if (!form.reporte || form.reporte.trim().length < 10)
       nuevosErrores.reporte = "El reporte debe tener al menos 10 caracteres.";
-if (form.reporte.length > 250) {
-    nuevosErrores.reporte = "El reporte no puede exceder los 250 caracteres.";
-  }
-
+    else if (form.reporte.length > 250)
+      nuevosErrores.reporte = "El reporte no puede exceder 250 caracteres.";
 
     const horas = Number(form.tiempo_horas);
     const minutos = Number(form.tiempo_minutos);
     if (
       isNaN(horas) ||
       horas < 0 ||
-      horas > 23 ||
+      horas > 12 || // Cambiado a 12 horas
       (minutos !== 0 && minutos !== 30)
     ) {
       nuevosErrores.tiempo = "El tiempo debe ser válido y los minutos solo 00 o 30.";
@@ -106,6 +104,12 @@ if (form.reporte.length > 250) {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+
+    // Limitar longitud del reporte a 250 caracteres
+    if (name === "reporte" && value.length > 250) {
+      return; // No actualizar si excede 250 caracteres
+    }
+
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
@@ -465,12 +469,11 @@ if (form.reporte.length > 250) {
             ...estilos.input,
             height: 100,
             ...(errores.reporte ? estilos.errorInput : {}),
-            maxLength: 250,
           }}
           name="reporte"
           value={form.reporte}
           onChange={handleChange}
-          maxLength="250"
+          maxLength={250} // Limitar caracteres en UI
         />
         {errores.reporte && (
           <div style={estilos.textoError}>{errores.reporte}</div>
@@ -590,4 +593,4 @@ if (form.reporte.length > 250) {
   );
 }
 
-export default App;name="tiempo_horas"
+export default App;
