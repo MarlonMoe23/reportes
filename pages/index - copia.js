@@ -1,3 +1,4 @@
+// pages/index.js
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
@@ -36,13 +37,6 @@ function App() {
   const [reportesDiarios, setReportesDiarios] = useState([]);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [novedad, setNovedad] = useState("");
-  const [guardando, setGuardando] = useState(false); // Estado para evitar duplicados
-
-const iconoEstado = (terminado) => (terminado ? "✅" : "⏳");
-
-const handleEnviarWhatsApp = () => {
-    setMostrarConfirmacion(true);
-  };
 
   useEffect(() => {
     const hoy = new Date().toISOString().split("T")[0];
@@ -111,7 +105,6 @@ const handleEnviarWhatsApp = () => {
     }
 
     try {
-      setGuardando(true); // Deshabilitar botón para evitar duplicados
       localStorage.setItem("tecnico", form.tecnico);
 
       const nuevoReporte = {
@@ -122,7 +115,7 @@ const handleEnviarWhatsApp = () => {
         ),
       };
 
-      await axios.post("/api/reportes", nuevoReporte);
+      await axios.post('/api/reportes', nuevoReporte);
 
       setReportesDiarios((prevReportes) => [...prevReportes, nuevoReporte]);
 
@@ -143,8 +136,6 @@ const handleEnviarWhatsApp = () => {
     } catch (error) {
       setMensaje("❌ Error al guardar registro.");
       console.error(error);
-    } finally {
-      setGuardando(false); // Habilitar botón nuevamente
     }
   };
 
@@ -158,26 +149,28 @@ const handleEnviarWhatsApp = () => {
     return `${hours}h ${minutes}m`;
   };
 
- // En la función generarMensajeWhatsApp:
-const generarMensajeWhatsApp = () => {
-  const fecha = new Date().toISOString().split("T")[0];
-  const tiempoTotal = calcularTiempoTotal();
-  const tiempoTotalFormateado = formatTime(tiempoTotal);
+  const generarMensajeWhatsApp = () => {
+    const fecha = new Date().toISOString().split("T")[0];
+    const tiempoTotal = calcularTiempoTotal();
+    const tiempoTotalFormateado = formatTime(tiempoTotal);
 
-  let mensaje = `Reporte ${fecha}\nTiempo total: ${tiempoTotalFormateado}\n\n`;
+    let mensaje = `Reporte ${fecha}\nTiempo total: ${tiempoTotalFormateado}\n\n`;
 
-  reportesDiarios.forEach((reporte) => {
-    const tiempoFormateado = formatTime(reporte.tiempo);
-    const estado = reporte.terminado ? "✅" : "⏳";
-    mensaje += `(${reporte.planta}) ${reporte.reporte} - ${estado} - ${tiempoFormateado}\n`;
-  });
+    reportesDiarios.forEach((reporte) => {
+      const tiempoFormateado = formatTime(reporte.tiempo);
+      mensaje += `- ${reporte.reporte} (${reporte.planta}) - ${tiempoFormateado}\n`;
+    });
 
-  if (novedad) {
-    mensaje += `\nNovedades:\n${novedad}`;
-  }
+    if (novedad) {
+      mensaje += `\nNovedades:\n${novedad}`;
+    }
 
-  return encodeURIComponent(mensaje);
-};
+    return encodeURIComponent(mensaje);
+  };
+
+  const handleEnviarWhatsApp = () => {
+    setMostrarConfirmacion(true);
+  };
 
   const confirmarEnvioWhatsApp = () => {
     const mensajeWhatsApp = generarMensajeWhatsApp();
@@ -288,78 +281,53 @@ const generarMensajeWhatsApp = () => {
     reporteItem: {
       marginBottom: 5,
     },
-    
-confirmacionOverlay: {
-  position: "fixed",
-  top: 0,
-  left: 0,
-  width: "100vw",
-  height: "100vh",
-  backgroundColor: "rgba(0, 0, 0, 0.5)",
-  display: "flex",
-  justifyContent: "center",
-  alignItems: "center",
-  zIndex: 1000,
-  padding: 20,
-  boxSizing: "border-box",
-},
-
-confirmacionContenido: {
-  background: "#fff",
-  padding: 30,
-  borderRadius: 10,
-  textAlign: "center",
-  maxWidth: 480,
-  width: "100%",
-  boxSizing: "border-box",
-  display: "flex",
-  flexDirection: "column",
-  gap: 15,
-},
-
-confirmacionNovedad: {
-  width: "100%",
-  padding: "12px",
-  fontSize: 16,
-  borderRadius: 5,
-  border: "1px solid #ccc",
-  resize: "vertical",
-  minHeight: 120,
-  boxSizing: "border-box",
-  fontFamily: "Arial, sans-serif",
-},
-
-confirmacionBotones: {
-  display: "flex",
-  justifyContent: "space-between",
-  gap: 15,
-},
-
-confirmacionBoton: {
-  flex: 1,
-  padding: 12,
-  fontSize: 16,
-  fontWeight: "bold",
-  borderRadius: 5,
-  cursor: "pointer",
-  border: "none",
-  transition: "background-color 0.3s ease",
-},
-
-confirmacionBotonAceptar: {
-  backgroundColor: "#25D366",
-  color: "white",
-},
-
-confirmacionBotonCancelar: {
-  backgroundColor: "#ccc",
-  color: "black",
-},
-
-
-
-
-
+    confirmacionOverlay: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: "100%",
+      height: "100%",
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      display: "flex",
+      justifyContent: "center",
+      alignItems: "center",
+      zIndex: 1000,
+    },
+    confirmacionContenido: {
+      background: "#fff",
+      padding: 20,
+      borderRadius: 10,
+      textAlign: "center",
+    },
+    confirmacionNovedad: {
+      width: "100%",
+      padding: "10px",
+      fontSize: 16,
+      borderRadius: 5,
+      border: "1px solid #ccc",
+      marginBottom: 10,
+    },
+    confirmacionBotones: {
+      display: "flex",
+      justifyContent: "space-around",
+      marginTop: 20,
+    },
+    confirmacionBoton: {
+      padding: 10,
+      fontSize: 16,
+      fontWeight: "bold",
+      borderRadius: 5,
+      cursor: "pointer",
+      border: "none",
+    },
+    confirmacionBotonAceptar: {
+      backgroundColor: "#25D366",
+      color: "white",
+    },
+    confirmacionBotonCancelar: {
+      backgroundColor: "#ccc",
+      color: "black",
+    },
   };
 
   return (
@@ -480,8 +448,8 @@ confirmacionBotonCancelar: {
           Trabajo terminado
         </label>
 
-        <button type="submit" style={estilos.boton} disabled={guardando}>
-          {guardando ? "Guardando..." : "Guardar registro"}
+        <button type="submit" style={estilos.boton}>
+          Guardar registro
         </button>
       </form>
 
@@ -496,18 +464,14 @@ confirmacionBotonCancelar: {
         </div>
       )}
 
-     
-
-
-<div style={estilos.listaReportes}>
-  <h3>Reportes del día</h3>
-  {reportesDiarios.map((reporte, index) => (
-    <div key={index} style={estilos.reporteItem}>
-      ({reporte.planta}) {reporte.reporte} {iconoEstado(reporte.terminado)} - {formatTime(reporte.tiempo)}
-    </div>
-  ))}
-</div>
-
+      <div style={estilos.listaReportes}>
+        <h3>Reportes del día</h3>
+        {reportesDiarios.map((reporte, index) => (
+          <div key={index} style={estilos.reporteItem}>
+            {reporte.reporte} ({reporte.planta}) - {formatTime(reporte.tiempo)}
+          </div>
+        ))}
+      </div>
 
       <button
         style={estilos.botonWhatsApp}
@@ -522,7 +486,7 @@ confirmacionBotonCancelar: {
           <div style={estilos.confirmacionContenido}>
             <textarea
               style={estilos.confirmacionNovedad}
-              placeholder="Opcional: Alguna novedad que informar? Falta algo? Algo no está en orden?" 
+              placeholder="Alguna novedad que reportar?"
               value={novedad}
               onChange={(e) => setNovedad(e.target.value)}
             />
@@ -534,7 +498,7 @@ confirmacionBotonCancelar: {
                 }}
                 onClick={confirmarEnvioWhatsApp}
               >
-                Enviar
+                Sí, enviar
               </button>
               <button
                 style={{
