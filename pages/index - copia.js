@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import CreatableSelect from "react-select/creatable";
 
 function App() {
   const tecnicos = [
@@ -35,48 +34,12 @@ function App() {
     terminado: false,
   });
 
-  const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
-
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
   const [reportesDiarios, setReportesDiarios] = useState([]);
   const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
   const [novedad, setNovedad] = useState("");
   const [guardando, setGuardando] = useState(false); // Estado para evitar duplicados
-
-  // Indicador visual de guardado (spinner simple)
-  const Spinner = () => (
-    <div
-      role="status"
-      aria-live="polite"
-      aria-label="Guardando registro"
-      style={{ marginLeft: 10, display: "inline-block" }}
-    >
-      <svg
-        width="20"
-        height="20"
-        viewBox="0 0 38 38"
-        xmlns="http://www.w3.org/2000/svg"
-        stroke="#fff"
-      >
-        <g fill="none" fillRule="evenodd">
-          <g transform="translate(1 1)" strokeWidth="2">
-            <circle strokeOpacity=".5" cx="18" cy="18" r="18" />
-            <path d="M36 18c0-9.94-8.06-18-18-18">
-              <animateTransform
-                attributeName="transform"
-                type="rotate"
-                from="0 18 18"
-                to="360 18 18"
-                dur="1s"
-                repeatCount="indefinite"
-              />
-            </path>
-          </g>
-        </g>
-      </svg>
-    </div>
-  );
 
   const iconoEstado = (terminado) => (terminado ? "✅" : "⏳");
 
@@ -101,11 +64,6 @@ function App() {
     }));
     setReportesDiarios(reportesGuardados);
     setEquiposSugeridos(equiposGuardados);
-
-    // Si hay equipo guardado, seleccionarlo en react-select
-    if (equiposGuardados.length > 0) {
-      setEquipoSeleccionado(null);
-    }
   }, []);
 
   useEffect(() => {
@@ -133,7 +91,7 @@ function App() {
     if (
       isNaN(horas) ||
       horas < 0 ||
-      horas > 12 || // Limitar a 12 horas
+      horas > 12 || // Cambiado a 12 horas
       (minutos !== 0 && minutos !== 30)
     ) {
       nuevosErrores.tiempo = "El tiempo debe ser válido y los minutos solo 00 o 30.";
@@ -158,23 +116,6 @@ function App() {
     }));
   };
 
-  const handleEquipoChange = (newValue, actionMeta) => {
-    setEquipoSeleccionado(newValue);
-    setForm((prev) => ({
-      ...prev,
-      equipo: newValue ? newValue.value : "",
-    }));
-
-    // Si es creación de nueva opción, agregarla a equiposSugeridos
-    if (actionMeta.action === "create-option" && newValue) {
-      if (!equiposSugeridos.includes(newValue.value)) {
-        const nuevosEquipos = [...equiposSugeridos, newValue.value];
-        setEquiposSugeridos(nuevosEquipos);
-        localStorage.setItem("equiposSugeridos", JSON.stringify(nuevosEquipos));
-      }
-    }
-  };
-
   const tiempoDecimal = (horas, minutos) => {
     return horas + (minutos === 30 ? 0.5 : 0);
   };
@@ -194,7 +135,7 @@ function App() {
       localStorage.setItem("tecnico", form.tecnico);
       localStorage.setItem("planta", form.planta);
 
-      // Guardar equipo en sugeridos si no está ya (por seguridad, aunque ya se agrega en creación)
+      // Guardar equipo en sugeridos si no está ya
       if (
         form.equipo.trim() &&
         !equiposSugeridos.includes(form.equipo.trim())
@@ -229,14 +170,9 @@ function App() {
         tiempo_minutos: "00",
         terminado: false,
       });
-      setEquipoSeleccionado(null);
       setErrores({});
     } catch (error) {
-      setMensaje(
-        "❌ Error al guardar registro. Por favor, verifica tu conexión y vuelve a intentarlo."
-      );
-      // Guardar datos en localStorage para persistencia
-      localStorage.setItem("formBackup", JSON.stringify(form));
+      setMensaje("❌ Error al guardar registro.");
       console.error(error);
     } finally {
       setGuardando(false); // Habilitar botón nuevamente
@@ -292,7 +228,6 @@ function App() {
       tiempo_minutos: "00",
       terminado: false,
     });
-    setEquipoSeleccionado(null);
     setNovedad("");
 
     setMostrarConfirmacion(false);
@@ -302,7 +237,6 @@ function App() {
     setMostrarConfirmacion(false);
   };
 
-  // Diseño responsivo básico y accesibilidad mejorada
   const estilos = {
     contenedor: {
       maxWidth: 500,
@@ -312,7 +246,6 @@ function App() {
       boxShadow: "0 0 20px rgba(0,0,0,0.1)",
       borderRadius: 10,
       background: "#fff",
-      boxSizing: "border-box",
     },
     input: {
       width: "100%",
@@ -321,7 +254,6 @@ function App() {
       borderRadius: 5,
       border: "1px solid #ccc",
       marginBottom: 10,
-      boxSizing: "border-box",
     },
     errorInput: {
       borderColor: "red",
@@ -348,9 +280,6 @@ function App() {
       borderRadius: 5,
       cursor: "pointer",
       marginTop: 10,
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
     },
     botonWhatsApp: {
       width: "100%",
@@ -458,33 +387,21 @@ function App() {
     },
   };
 
-  const equiposSugeridosOptions = equiposSugeridos.map((equipo) => ({
-    value: equipo,
-    label: equipo,
-  }));
-
   return (
     <div style={estilos.contenedor}>
       <h2>Reporte Diario de Mantenimiento</h2>
-      <form onSubmit={handleSubmit} aria-label="Formulario de reporte diario">
-        <label style={estilos.etiqueta} htmlFor="fecha_reporte">
-          Fecha del reporte:
-        </label>
+      <form onSubmit={handleSubmit}>
+        <label style={estilos.etiqueta}>Fecha del reporte:</label>
         <input
           style={estilos.input}
           type="date"
-          id="fecha_reporte"
           name="fecha_reporte"
           value={form.fecha_reporte}
           onChange={handleChange}
-          aria-required="true"
         />
 
-        <label style={estilos.etiqueta} htmlFor="tecnico">
-          Técnico:
-        </label>
+        <label style={estilos.etiqueta}>Técnico:</label>
         <select
-          id="tecnico"
           name="tecnico"
           value={form.tecnico}
           onChange={handleChange}
@@ -492,8 +409,6 @@ function App() {
             ...estilos.input,
             ...(errores.tecnico ? estilos.errorInput : {}),
           }}
-          aria-required="true"
-          aria-invalid={errores.tecnico ? "true" : "false"}
         >
           <option value="">-- Selecciona técnico --</option>
           {tecnicos.map((nombre) => (
@@ -503,16 +418,11 @@ function App() {
           ))}
         </select>
         {errores.tecnico && (
-          <div style={estilos.textoError} role="alert">
-            {errores.tecnico}
-          </div>
+          <div style={estilos.textoError}>{errores.tecnico}</div>
         )}
 
-        <label style={estilos.etiqueta} htmlFor="planta">
-          Planta:
-        </label>
+        <label style={estilos.etiqueta}>Planta:</label>
         <select
-          id="planta"
           name="planta"
           value={form.planta}
           onChange={handleChange}
@@ -520,8 +430,6 @@ function App() {
             ...estilos.input,
             ...(errores.planta ? estilos.errorInput : {}),
           }}
-          aria-required="true"
-          aria-invalid={errores.planta ? "true" : "false"}
         >
           <option value="">-- Selecciona planta --</option>
           {plantas.map((p) => (
@@ -531,70 +439,49 @@ function App() {
           ))}
         </select>
         {errores.planta && (
-          <div style={estilos.textoError} role="alert">
-            {errores.planta}
-          </div>
+          <div style={estilos.textoError}>{errores.planta}</div>
         )}
 
-        <label style={estilos.etiqueta} htmlFor="equipo">
-          Equipo:
-        </label>
-        <CreatableSelect
-          inputId="equipo"
-          value={equipoSeleccionado}
-          onChange={handleEquipoChange}
-          options={equiposSugeridosOptions}
-          isClearable
-          placeholder="Selecciona o crea un equipo..."
-          styles={{
-            control: (base, state) => ({
-              ...base,
-              border: errores.equipo ? "1px solid red" : "1px solid #ccc",
-              backgroundColor: errores.equipo ? "#ffe6e6" : "white",
-            }),
+        <label style={estilos.etiqueta}>Equipo:</label>
+        <input
+          style={{
+            ...estilos.input,
+            ...(errores.equipo ? estilos.errorInput : {}),
           }}
-          aria-required="true"
-          aria-invalid={errores.equipo ? "true" : "false"}
+          name="equipo"
+          value={form.equipo}
+          onChange={handleChange}
+          list="equipos-sugeridos"
+          autoComplete="off"
         />
+        <datalist id="equipos-sugeridos">
+          {equiposSugeridos.map((equipo) => (
+            <option key={equipo} value={equipo} />
+          ))}
+        </datalist>
         {errores.equipo && (
-          <div style={estilos.textoError} role="alert">
-            {errores.equipo}
-          </div>
+          <div style={estilos.textoError}>{errores.equipo}</div>
         )}
 
-        <label style={estilos.etiqueta} htmlFor="reporte">
-          Reporte:
-        </label>
+        <label style={estilos.etiqueta}>Reporte:</label>
         <textarea
           style={{
             ...estilos.input,
             height: 100,
             ...(errores.reporte ? estilos.errorInput : {}),
           }}
-          id="reporte"
           name="reporte"
           value={form.reporte}
           onChange={handleChange}
-          maxLength={250}
-          aria-required="true"
-          aria-invalid={errores.reporte ? "true" : "false"}
-          aria-describedby="reporteHelp"
+          maxLength={250} // Limitar caracteres en UI
         />
-        <div id="reporteHelp" style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
-          {form.reporte.length} / 250 caracteres
-        </div>
         {errores.reporte && (
-          <div style={estilos.textoError} role="alert">
-            {errores.reporte}
-          </div>
+          <div style={estilos.textoError}>{errores.reporte}</div>
         )}
 
-        <label style={estilos.etiqueta} htmlFor="tiempo_horas">
-          Tiempo (hh:mm):
-        </label>
+        <label style={estilos.etiqueta}>Tiempo (hh:mm):</label>
         <div style={estilos.tiempoContainer}>
           <select
-            id="tiempo_horas"
             name="tiempo_horas"
             value={form.tiempo_horas}
             onChange={handleChange}
@@ -602,8 +489,6 @@ function App() {
               ...estilos.tiempoSelect,
               ...(errores.tiempo ? estilos.errorInput : {}),
             }}
-            aria-required="true"
-            aria-invalid={errores.tiempo ? "true" : "false"}
           >
             {Array.from({ length: 13 }, (_, i) => (
               <option key={i} value={i.toString().padStart(2, "0")}>
@@ -612,7 +497,6 @@ function App() {
             ))}
           </select>
           <select
-            id="tiempo_minutos"
             name="tiempo_minutos"
             value={form.tiempo_minutos}
             onChange={handleChange}
@@ -620,17 +504,13 @@ function App() {
               ...estilos.tiempoSelect,
               ...(errores.tiempo ? estilos.errorInput : {}),
             }}
-            aria-required="true"
-            aria-invalid={errores.tiempo ? "true" : "false"}
           >
             <option value="00">00</option>
             <option value="30">30</option>
           </select>
         </div>
         {errores.tiempo && (
-          <div style={estilos.textoError} role="alert">
-            {errores.tiempo}
-          </div>
+          <div style={estilos.textoError}>{errores.tiempo}</div>
         )}
 
         <label style={{ marginTop: 10 }}>
@@ -639,26 +519,12 @@ function App() {
             name="terminado"
             checked={form.terminado}
             onChange={handleChange}
-            aria-checked={form.terminado}
           />{" "}
           Trabajo terminado
         </label>
 
-        <button
-          type="submit"
-          style={estilos.boton}
-          disabled={guardando}
-          aria-disabled={guardando}
-          aria-live="polite"
-        >
-          {guardando ? (
-            <>
-              Guardando...
-              <Spinner />
-            </>
-          ) : (
-            "Guardar registro"
-          )}
+        <button type="submit" style={estilos.boton} disabled={guardando}>
+          {guardando ? "Guardando..." : "Guardar registro"}
         </button>
       </form>
 
@@ -668,8 +534,6 @@ function App() {
             ...estilos.mensaje,
             color: mensaje.includes("éxito") ? "green" : "red",
           }}
-          role="alert"
-          aria-live="assertive"
         >
           {mensaje}
         </div>
@@ -677,7 +541,6 @@ function App() {
 
       <div style={estilos.listaReportes}>
         <h3>Reportes del día</h3>
-        {reportesDiarios.length === 0 && <p>No hay reportes aún.</p>}
         {reportesDiarios.map((reporte, index) => (
           <div key={index} style={estilos.reporteItem}>
             ({reporte.planta}) {reporte.reporte} {iconoEstado(reporte.terminado)} -{" "}
@@ -690,21 +553,18 @@ function App() {
         style={estilos.botonWhatsApp}
         onClick={handleEnviarWhatsApp}
         disabled={reportesDiarios.length === 0}
-        aria-disabled={reportesDiarios.length === 0}
       >
         Enviar reporte por WhatsApp
       </button>
 
       {mostrarConfirmacion && (
-        <div style={estilos.confirmacionOverlay} role="dialog" aria-modal="true" aria-labelledby="confirmacionTitulo">
+        <div style={estilos.confirmacionOverlay}>
           <div style={estilos.confirmacionContenido}>
-            <h2 id="confirmacionTitulo">¿Estás seguro de que has incluido todos los trabajos realizados hoy en el reporte?</h2>
             <textarea
               style={estilos.confirmacionNovedad}
               placeholder="Opcional: Alguna novedad que informar? Falta algo? Algo no está en orden?"
               value={novedad}
               onChange={(e) => setNovedad(e.target.value)}
-              aria-label="Novedades opcionales"
             />
             <div style={estilos.confirmacionBotones}>
               <button
