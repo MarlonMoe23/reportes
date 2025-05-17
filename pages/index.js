@@ -676,7 +676,7 @@ function App() {
       )}
 
       <div style={estilos.listaReportes}>
-        <h3>Reportes del día</h3>
+        <h3>Reporte del día</h3>
 <p>
     <strong>Tiempo total trabajado: </strong>
     {formatTime(calcularTiempoTotal())}
