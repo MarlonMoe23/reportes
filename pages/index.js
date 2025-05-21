@@ -692,11 +692,11 @@ function App() {
 
       <button
         style={estilos.botonWhatsApp}
-        onClick={handleEnviarWhatsApp}
+        // onClick={handleEnviarWhatsApp}
         disabled={reportesDiarios.length === 0}
         aria-disabled={reportesDiarios.length === 0}
       >
-        Enviar reporte por WhatsApp
+        Ya no hace falta enviar reporte por WhatsApp
       </button>
 
       {mostrarConfirmacion && (
