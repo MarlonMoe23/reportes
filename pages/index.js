@@ -102,10 +102,8 @@ function App() {
     setReportesDiarios(reportesGuardados);
     setEquiposSugeridos(equiposGuardados);
 
-    // Si hay equipo guardado, seleccionarlo en react-select
-    if (equiposGuardados.length > 0) {
-      setEquipoSeleccionado(null);
-    }
+  // equipoSeleccionado se inicializa en null por defecto y no debe ser reseteado aquí.
+  // La lógica anterior que llamaba a setEquipoSeleccionado(null) aquí fue eliminada.
   }, []);
 
   useEffect(() => {
