@@ -134,9 +134,9 @@ function App() {
       isNaN(horas) ||
       horas < 0 ||
       horas > 12 || // Limitar a 12 horas
-      ![0, 15, 30, 45].includes(minutos)
+      (minutos !== 0 && minutos !== 30)
     ) {
-      nuevosErrores.tiempo = "El tiempo debe ser válido y los minutos solo 00, 15, 30 o 45.";
+      nuevosErrores.tiempo = "El tiempo debe ser válido y los minutos solo 00 o 30.";
     } else if (horas === 0 && minutos === 0) {
       nuevosErrores.tiempo = "El tiempo debe ser mayor que cero.";
     }
@@ -176,7 +176,7 @@ function App() {
   };
 
   const tiempoDecimal = (horas, minutos) => {
-    return horas + minutos / 60;
+    return horas + (minutos === 30 ? 0.5 : 0);
   };
 
   const handleSubmit = async (e) => {
