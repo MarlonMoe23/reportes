@@ -85,7 +85,7 @@ function App() {
   };
 
   useEffect(() => {
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD en zona local
     const tecnicoGuardado = localStorage.getItem("tecnico") || "";
     const plantaGuardada = localStorage.getItem("planta") || "";
     const reportesGuardados =
@@ -217,7 +217,7 @@ function App() {
       setReportesDiarios((prevReportes) => [...prevReportes, nuevoReporte]);
 
       setMensaje("✅ Registro guardado con éxito!");
-      const hoy = new Date().toISOString().split("T")[0];
+      const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD en zona local
 
       setForm({
         fecha_reporte: hoy,
@@ -281,7 +281,7 @@ function App() {
     // Limpiar la lista y el formulario
     setReportesDiarios([]);
     localStorage.removeItem("reportesDiarios");
-    const hoy = new Date().toISOString().split("T")[0];
+    const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD en zona local
     setForm({
       fecha_reporte: hoy,
       tecnico: form.tecnico,
