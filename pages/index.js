@@ -474,7 +474,7 @@ function App() {
           onChange={handleEquipoChange}
           options={equiposSugeridosOptions}
           isClearable
-          placeholder="Selecciona o crea un equipo..."
+          placeholder="Ingresa el nº de OT, si se hizo sin OT, pon SIN OT "
           styles={{
             control: (base, state) => ({
               ...base,
