@@ -397,7 +397,7 @@ function App() {
       <h2>Reporte Diario de Mantenimiento</h2>
       <form onSubmit={handleSubmit} aria-label="Formulario de reporte diario">
         <label style={estilos.etiqueta} htmlFor="fecha_reporte">
-          Fecha del reporte:
+          Fecha del trabajo:
         </label>
         <input
           style={estilos.input}
@@ -466,7 +466,7 @@ function App() {
         )}
 
         <label style={estilos.etiqueta} htmlFor="equipo">
-          Equipo:
+          Orden de Trabajo:
         </label>
         <CreatableSelect
           inputId="equipo"
