@@ -608,10 +608,7 @@ function App() {
 
       <div style={estilos.listaReportes}>
         <h3>Historial de Reportes</h3>
-        <p>
-          <strong>Tiempo total trabajado: </strong>
-          {formatTime(calcularTiempoTotal())}
-        </p>
+        <p></p>
 
         {reportesDiarios.length === 0 && <p>No hay reportes aún.</p>}
 
