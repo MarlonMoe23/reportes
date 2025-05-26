@@ -36,13 +36,11 @@ function App() {
   });
 
   const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
-
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
   const [reportesDiarios, setReportesDiarios] = useState([]);
-  const [mostrarConfirmacion, setMostrarConfirmacion] = useState(false);
-  const [novedad, setNovedad] = useState("");
-  const [guardando, setGuardando] = useState(false); // Estado para evitar duplicados
+  const [guardando, setGuardando] = useState(false);
+  const [fechasExpandidas, setFechasExpandidas] = useState({});
 
   // Indicador visual de guardado (spinner simple)
   const Spinner = () => (
@@ -80,12 +78,8 @@ function App() {
 
   const iconoEstado = (terminado) => (terminado ? "✅" : "⏳");
 
-  const handleEnviarWhatsApp = () => {
-    setMostrarConfirmacion(true);
-  };
-
   useEffect(() => {
-    const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD en zona local
+    const hoy = new Date().toLocaleDateString('en-CA'); // Fecha local corregida
     const tecnicoGuardado = localStorage.getItem("tecnico") || "";
     const plantaGuardada = localStorage.getItem("planta") || "";
     const reportesGuardados =
@@ -115,6 +109,39 @@ function App() {
   useEffect(() => {
     localStorage.setItem("equiposSugeridos", JSON.stringify(equiposSugeridos));
   }, [equiposSugeridos]);
+
+  // Funciones auxiliares para agrupación por fecha
+  const agruparReportesPorFecha = (reportes) => {
+    return reportes.reduce((grupos, reporte) => {
+      const fecha = reporte.fecha_reporte;
+      if (!grupos[fecha]) {
+        grupos[fecha] = [];
+      }
+      grupos[fecha].push(reporte);
+      return grupos;
+    }, {});
+  };
+
+  const toggleFecha = (fecha) => {
+    setFechasExpandidas(prev => ({
+      ...prev,
+      [fecha]: !prev[fecha]
+    }));
+  };
+
+  const formatearFecha = (fecha) => {
+    const opciones = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    return new Date(fecha + 'T00:00:00').toLocaleDateString('es-ES', opciones);
+  };
+
+  const calcularTiempoDia = (reportes) => {
+    return reportes.reduce((total, reporte) => total + reporte.tiempo, 0);
+  };
 
   const validar = () => {
     const nuevosErrores = {};
@@ -217,7 +244,7 @@ function App() {
       setReportesDiarios((prevReportes) => [...prevReportes, nuevoReporte]);
 
       setMensaje("✅ Registro guardado con éxito!");
-      const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD en zona local
+      const hoy = new Date().toLocaleDateString('en-CA'); // Fecha local corregida
 
       setForm({
         fecha_reporte: hoy,
@@ -250,56 +277,7 @@ function App() {
   const formatTime = (decimalTime) => {
     const hours = Math.floor(decimalTime);
     const minutes = (decimalTime - hours) * 60;
-    return `${hours}h${minutes === 0 ? "" : minutes}`;
-  };
-
-  const generarMensajeWhatsApp = () => {
-    const fecha = new Date().toISOString().split("T")[0];
-    const tiempoTotal = calcularTiempoTotal();
-    const tiempoTotalFormateado = formatTime(tiempoTotal);
-
-    let mensaje = `Reporte ${fecha}\nTiempo total: ${tiempoTotalFormateado}\n\n`;
-
-    reportesDiarios.forEach((reporte) => {
-      const tiempoFormateado = formatTime(reporte.tiempo);
-      const estado = reporte.terminado ? "✅" : "⏳";
-      mensaje += `(${reporte.planta}) ${reporte.reporte} ${estado}- ${tiempoFormateado}\n`;
-    });
-
-    if (novedad) {
-      mensaje += `\nNovedades:\n${novedad}`;
-    }
-
-    return encodeURIComponent(mensaje);
-  };
-
-  const confirmarEnvioWhatsApp = () => {
-    const mensajeWhatsApp = generarMensajeWhatsApp();
-    const urlWhatsApp = `https://wa.me/?text=${mensajeWhatsApp}`;
-    window.open(urlWhatsApp, "_blank");
-
-    // Limpiar la lista y el formulario
-    setReportesDiarios([]);
-    localStorage.removeItem("reportesDiarios");
-    const hoy = new Date().toLocaleDateString('en-CA'); // Formato YYYY-MM-DD en zona local
-    setForm({
-      fecha_reporte: hoy,
-      tecnico: form.tecnico,
-      planta: form.planta,
-      equipo: "",
-      reporte: "",
-      tiempo_horas: "00",
-      tiempo_minutos: "00",
-      terminado: false,
-    });
-    setEquipoSeleccionado(null);
-    setNovedad("");
-
-    setMostrarConfirmacion(false);
-  };
-
-  const cancelarEnvioWhatsApp = () => {
-    setMostrarConfirmacion(false);
+    return `${hours}h${minutes === 0 ? "" : Math.round(minutes)}`;
   };
 
   // Diseño responsivo básico y accesibilidad mejorada
@@ -352,18 +330,6 @@ function App() {
       justifyContent: "center",
       alignItems: "center",
     },
-    botonWhatsApp: {
-      width: "100%",
-      padding: 12,
-      fontSize: 16,
-      fontWeight: "bold",
-      backgroundColor: "#25D366",
-      color: "white",
-      border: "none",
-      borderRadius: 5,
-      cursor: "pointer",
-      marginTop: 10,
-    },
     mensaje: {
       textAlign: "center",
       marginTop: 20,
@@ -388,73 +354,36 @@ function App() {
     },
     reporteItem: {
       marginBottom: 5,
+      padding: 8,
+      backgroundColor: "#f9f9f9",
+      borderRadius: 4,
+      fontSize: 14,
     },
-
-    confirmacionOverlay: {
-      position: "fixed",
-      top: 0,
-      left: 0,
-      width: "100vw",
-      height: "100vh",
-      backgroundColor: "rgba(0, 0, 0, 0.5)",
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      zIndex: 1000,
-      padding: 20,
-      boxSizing: "border-box",
+    grupoFecha: {
+      marginBottom: 15,
+      border: "1px solid #e0e0e0",
+      borderRadius: 8,
+      overflow: "hidden",
     },
-
-    confirmacionContenido: {
-      background: "#fff",
-      padding: 30,
-      borderRadius: 10,
-      textAlign: "center",
-      maxWidth: 480,
-      width: "100%",
-      boxSizing: "border-box",
-      display: "flex",
-      flexDirection: "column",
-      gap: 15,
-    },
-
-    confirmacionNovedad: {
-      width: "100%",
-      padding: "12px",
-      fontSize: 16,
-      borderRadius: 5,
-      border: "1px solid #ccc",
-      resize: "vertical",
-      minHeight: 120,
-      boxSizing: "border-box",
-      fontFamily: "Arial, sans-serif",
-    },
-
-    confirmacionBotones: {
+    headerFecha: {
+      padding: 15,
+      backgroundColor: "#f8f9fa",
+      cursor: "pointer",
       display: "flex",
       justifyContent: "space-between",
-      gap: 15,
+      alignItems: "center",
+      borderBottom: "1px solid #e0e0e0",
+      transition: "background-color 0.2s ease",
     },
-
-    confirmacionBoton: {
-      flex: 1,
-      padding: 12,
-      fontSize: 16,
-      fontWeight: "bold",
-      borderRadius: 5,
-      cursor: "pointer",
-      border: "none",
-      transition: "background-color 0.3s ease",
+    reportesDia: {
+      padding: 10,
+      backgroundColor: "#fff",
     },
-
-    confirmacionBotonAceptar: {
-      backgroundColor: "#25D366",
-      color: "white",
-    },
-
-    confirmacionBotonCancelar: {
-      backgroundColor: "#ccc",
-      color: "black",
+    separadorFecha: {
+      fontSize: 12,
+      color: "#666",
+      marginTop: 4,
+      fontWeight: "normal",
     },
   };
 
@@ -678,63 +607,45 @@ function App() {
       )}
 
       <div style={estilos.listaReportes}>
-        <h3>Reporte del día</h3>
-<p>
-    <strong>Tiempo total trabajado: </strong>
-    {formatTime(calcularTiempoTotal())}
-  </p>
+        <h3>Historial de Reportes</h3>
+        <p>
+          <strong>Tiempo total trabajado: </strong>
+          {formatTime(calcularTiempoTotal())}
+        </p>
+
         {reportesDiarios.length === 0 && <p>No hay reportes aún.</p>}
-        {reportesDiarios.map((reporte, index) => (
-          <div key={index} style={estilos.reporteItem}>
-            ({reporte.planta}) {reporte.reporte} {iconoEstado(reporte.terminado)} -{" "}
-            {formatTime(reporte.tiempo)}
-          </div>
-        ))}
-      </div>
 
-      <button
-        style={estilos.botonWhatsApp}
-        // onClick={handleEnviarWhatsApp}
-        disabled={reportesDiarios.length === 0}
-        aria-disabled={reportesDiarios.length === 0}
-      >
-        Ya no hace falta enviar reporte por WhatsApp
-      </button>
+        {Object.entries(agruparReportesPorFecha(reportesDiarios))
+          .sort(([a], [b]) => new Date(b) - new Date(a))
+          .map(([fecha, reportes]) => (
+            <div key={fecha} style={estilos.grupoFecha}>
+              <div 
+                style={estilos.headerFecha}
+                onClick={() => toggleFecha(fecha)}
+              >
+                <div>
+                  <strong>{formatearFecha(fecha)}</strong>
+                  <div style={estilos.separadorFecha}>
+                    {reportes.length} trabajo{reportes.length !== 1 ? 's' : ''} - {formatTime(calcularTiempoDia(reportes))}
+                  </div>
+                </div>
+                <span style={{ fontSize: 18 }}>
+                  {fechasExpandidas[fecha] ? '▼' : '▶'}
+                </span>
+              </div>
 
-      {mostrarConfirmacion && (
-        <div style={estilos.confirmacionOverlay} role="dialog" aria-modal="true" aria-labelledby="confirmacionTitulo">
-          <div style={estilos.confirmacionContenido}>
-            <h2 id="confirmacionTitulo">¿Estás seguro de que has incluido todos los trabajos realizados hoy en el reporte?</h2>
-            <textarea
-              style={estilos.confirmacionNovedad}
-              placeholder="Opcional: Alguna novedad que informar? Falta algo? Algo no está en orden?"
-              value={novedad}
-              onChange={(e) => setNovedad(e.target.value)}
-              aria-label="Novedades opcionales"
-            />
-            <div style={estilos.confirmacionBotones}>
-              <button
-                style={{
-                  ...estilos.confirmacionBoton,
-                  ...estilos.confirmacionBotonAceptar,
-                }}
-                onClick={confirmarEnvioWhatsApp}
-              >
-                Enviar
-              </button>
-              <button
-                style={{
-                  ...estilos.confirmacionBoton,
-                  ...estilos.confirmacionBotonCancelar,
-                }}
-                onClick={cancelarEnvioWhatsApp}
-              >
-                Cancelar
-              </button>
+              {fechasExpandidas[fecha] && (
+                <div style={estilos.reportesDia}>
+                  {reportes.map((reporte, index) => (
+                    <div key={index} style={estilos.reporteItem}>
+                      ({reporte.planta}) {reporte.reporte} {iconoEstado(reporte.terminado)} - {formatTime(reporte.tiempo)}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        </div>
-      )}
+          ))}
+      </div>
     </div>
   );
 }
