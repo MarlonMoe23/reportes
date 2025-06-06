@@ -1,19 +1,24 @@
 import React, { useState, useEffect } from "react";
-import axios from "axios";
-import CreatableSelect from "react-select/creatable";
 
 function App() {
   const tecnicos = [
-    "Carlos Cisneros",
-    "Juan Carrión",
-    "César Sánchez",
-    "Miguel Lozada",
-    "Roberto Córdova",
+  "Carlos Cisneros",
+  "César Sánchez",
+  "Cristian Lara",
+  "Juan Carrión",
+  "Miguel Lozada",
+  "Roberto Córdova",
+
+"---",
     "Alex Haro",
+    "Angelo Porras",
     "Dario Ojeda",
+    "Edgar Ormaza",
     "Israel Pérez",
     "José Urquizo",
     "Kevin Vargas",
+
+"---",
     "Edisson Bejarano",
     "Leonardo Ballesteros",
     "Marlon Ortiz",
@@ -35,7 +40,6 @@ function App() {
     terminado: false,
   });
 
-  const [equipoSeleccionado, setEquipoSeleccionado] = useState(null);
   const [errores, setErrores] = useState({});
   const [mensaje, setMensaje] = useState("");
   const [reportesDiarios, setReportesDiarios] = useState([]);
@@ -95,11 +99,6 @@ function App() {
     }));
     setReportesDiarios(reportesGuardados);
     setEquiposSugeridos(equiposGuardados);
-
-    // Si hay equipo guardado, seleccionarlo en react-select
-    if (equiposGuardados.length > 0) {
-      setEquipoSeleccionado(null);
-    }
   }, []);
 
   useEffect(() => {
@@ -185,23 +184,6 @@ function App() {
     }));
   };
 
-  const handleEquipoChange = (newValue, actionMeta) => {
-    setEquipoSeleccionado(newValue);
-    setForm((prev) => ({
-      ...prev,
-      equipo: newValue ? newValue.value : "",
-    }));
-
-    // Si es creación de nueva opción, agregarla a equiposSugeridos
-    if (actionMeta.action === "create-option" && newValue) {
-      if (!equiposSugeridos.includes(newValue.value)) {
-        const nuevosEquipos = [...equiposSugeridos, newValue.value];
-        setEquiposSugeridos(nuevosEquipos);
-        localStorage.setItem("equiposSugeridos", JSON.stringify(nuevosEquipos));
-      }
-    }
-  };
-
   const tiempoDecimal = (horas, minutos) => {
     return horas + minutos / 60;
   };
@@ -221,7 +203,7 @@ function App() {
       localStorage.setItem("tecnico", form.tecnico);
       localStorage.setItem("planta", form.planta);
 
-      // Guardar equipo en sugeridos si no está ya (por seguridad, aunque ya se agrega en creación)
+      // Guardar equipo en sugeridos si no está ya
       if (
         form.equipo.trim() &&
         !equiposSugeridos.includes(form.equipo.trim())
@@ -239,7 +221,8 @@ function App() {
         ),
       };
 
-      await axios.post("/api/reportes", nuevoReporte);
+      // Simular guardado en servidor (en producción sería: await axios.post("/api/reportes", nuevoReporte))
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Simular delay de red
 
       setReportesDiarios((prevReportes) => [...prevReportes, nuevoReporte]);
 
@@ -256,7 +239,6 @@ function App() {
         tiempo_minutos: "00",
         terminado: false,
       });
-      setEquipoSeleccionado(null);
       setErrores({});
     } catch (error) {
       setMensaje(
@@ -387,11 +369,6 @@ function App() {
     },
   };
 
-  const equiposSugeridosOptions = equiposSugeridos.map((equipo) => ({
-    value: equipo,
-    label: equipo,
-  }));
-
   return (
     <div style={estilos.contenedor}>
       <h2>Reporte Diario de Mantenimiento</h2>
@@ -468,23 +445,26 @@ function App() {
         <label style={estilos.etiqueta} htmlFor="equipo">
           Orden de Trabajo:
         </label>
-        <CreatableSelect
-          inputId="equipo"
-          value={equipoSeleccionado}
-          onChange={handleEquipoChange}
-          options={equiposSugeridosOptions}
-          isClearable
-          placeholder="Ingresa el nº de OT, si se hizo sin OT, pon SIN OT "
-          styles={{
-            control: (base, state) => ({
-              ...base,
-              border: errores.equipo ? "1px solid red" : "1px solid #ccc",
-              backgroundColor: errores.equipo ? "#ffe6e6" : "white",
-            }),
+        <input
+          style={{
+            ...estilos.input,
+            ...(errores.equipo ? estilos.errorInput : {}),
           }}
+          type="text"
+          id="equipo"
+          name="equipo"
+          value={form.equipo}
+          onChange={handleChange}
+          list="equipos-list"
+          placeholder="Ingresa el nº de OT, si se hizo sin OT, pon SIN OT"
           aria-required="true"
           aria-invalid={errores.equipo ? "true" : "false"}
         />
+        <datalist id="equipos-list">
+          {equiposSugeridos.map((equipo, index) => (
+            <option key={index} value={equipo} />
+          ))}
+        </datalist>
         {errores.equipo && (
           <div style={estilos.textoError} role="alert">
             {errores.equipo}
