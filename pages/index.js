@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
 
-
 function App() {
   const tecnicos = [
-  "Carlos Cisneros",
-  "César Sánchez",
-  "Cristian Lara",
-  "Juan Carrión",
-  "Miguel Lozada",
-  "Roberto Córdova",
+    "Carlos Cisneros",
+    "César Sánchez",
+    "Cristian Lara",
+    "Juan Carrión",
+    "Miguel Lozada",
+    "Roberto Córdova",
 
-"---",
+    "---",
     "Alex Haro",
     "Angelo Porras",
     "Dario Ojeda",
@@ -20,7 +19,7 @@ function App() {
     "José Urquizo",
     "Kevin Vargas",
 
-"---",
+    "---",
     "Edisson Bejarano",
     "Leonardo Ballesteros",
     "Marlon Ortiz",
@@ -30,6 +29,7 @@ function App() {
 
   // Estado para equipos sugeridos (autocompletado)
   const [equiposSugeridos, setEquiposSugeridos] = useState([]);
+  const [reporteEditando, setReporteEditando] = useState(null);
 
   const [form, setForm] = useState({
     fecha_reporte: "",
@@ -46,7 +46,106 @@ function App() {
   const [mensaje, setMensaje] = useState("");
   const [reportesDiarios, setReportesDiarios] = useState([]);
   const [guardando, setGuardando] = useState(false);
-  const [fechasExpandidas, setFechasExpandidas] = useState({});
+
+  // Función para cargar reportes desde Supabase filtrados por técnico
+  const cargarReportesDesdeSupabase = async (tecnicoSeleccionado = null) => {
+    try {
+      const tecnicoFiltro = tecnicoSeleccionado || form.tecnico;
+      
+      if (!tecnicoFiltro) {
+        setReportesDiarios([]);
+        return;
+      }
+
+      const response = await axios.get(`/api/reportes?tecnico=${encodeURIComponent(tecnicoFiltro)}`);
+      if (response.data && Array.isArray(response.data)) {
+        setReportesDiarios(response.data);
+      }
+    } catch (error) {
+      console.error('Error al cargar reportes:', error);
+      setMensaje('❌ Error al cargar el historial de reportes');
+    }
+  };
+
+  // Función para eliminar reporte
+  const eliminarReporte = async (reporteId) => {
+    if (!window.confirm('¿Estás seguro de que quieres eliminar este reporte?')) {
+      return;
+    }
+
+    try {
+      await axios.delete(`/api/reportes/${reporteId}`);
+      setMensaje('✅ Reporte eliminado correctamente');
+      await cargarReportesDesdeSupabase();
+    } catch (error) {
+      console.error('Error al eliminar reporte:', error);
+      setMensaje('❌ Error al eliminar el reporte');
+    }
+  };
+
+ // Función para cargar datos del reporte en el formulario para editar
+const editarReporte = (reporte) => {
+  const horas = Math.floor(reporte.tiempo);
+  const minutos = Math.round((reporte.tiempo - horas) * 60);
+  
+  // Función auxiliar para convertir fecha a formato YYYY-MM-DD
+  const formatearFechaParaInput = (fecha) => {
+    if (!fecha) return new Date().toLocaleDateString('en-CA');
+    
+    // Si ya está en formato YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
+      return fecha;
+    }
+    
+    // Si viene con timestamp ISO
+    if (fecha.includes('T')) {
+      return fecha.split('T')[0];
+    }
+    
+    // Si viene en otro formato, intentar crear Date y convertir
+    try {
+      const fechaObj = new Date(fecha);
+      return fechaObj.toLocaleDateString('en-CA');
+    } catch (error) {
+      console.error('Error al formatear fecha:', error);
+      return new Date().toLocaleDateString('en-CA');
+    }
+  };
+  
+  setForm({
+    fecha_reporte: formatearFechaParaInput(reporte.fecha_reporte),
+    tecnico: reporte.tecnico,
+    planta: reporte.planta,
+    equipo: reporte.equipo,
+    reporte: reporte.reporte,
+    tiempo_horas: horas.toString().padStart(2, "0"),
+    tiempo_minutos: minutos.toString().padStart(2, "0"),
+    terminado: reporte.terminado,
+  });
+  
+  setReporteEditando(reporte.id);
+  setMensaje('📝 Editando reporte - Modifica los datos y guarda');
+  
+  // Scroll al formulario
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+  // Función para cancelar edición
+  const cancelarEdicion = () => {
+    setReporteEditando(null);
+    const hoy = new Date().toLocaleDateString('en-CA');
+    setForm({
+      fecha_reporte: hoy,
+      tecnico: form.tecnico,
+      planta: form.planta,
+      equipo: "",
+      reporte: "",
+      tiempo_horas: "00",
+      tiempo_minutos: "00",
+      terminado: false,
+    });
+    setMensaje('');
+  };
 
   // Indicador visual de guardado (spinner simple)
   const Spinner = () => (
@@ -85,13 +184,10 @@ function App() {
   const iconoEstado = (terminado) => (terminado ? "✅" : "⏳");
 
   useEffect(() => {
-    const hoy = new Date().toLocaleDateString('en-CA'); // Fecha local corregida
+    const hoy = new Date().toLocaleDateString('en-CA');
     const tecnicoGuardado = localStorage.getItem("tecnico") || "";
     const plantaGuardada = localStorage.getItem("planta") || "";
-    const reportesGuardados =
-      JSON.parse(localStorage.getItem("reportesDiarios")) || [];
-    const equiposGuardados =
-      JSON.parse(localStorage.getItem("equiposSugeridos")) || [];
+    const equiposGuardados = JSON.parse(localStorage.getItem("equiposSugeridos")) || [];
 
     setForm((prev) => ({
       ...prev,
@@ -99,36 +195,18 @@ function App() {
       tecnico: tecnicoGuardado,
       planta: plantaGuardada,
     }));
-    setReportesDiarios(reportesGuardados);
+    
     setEquiposSugeridos(equiposGuardados);
+    
+    // Cargar reportes desde Supabase si hay técnico guardado
+    if (tecnicoGuardado) {
+      cargarReportesDesdeSupabase(tecnicoGuardado);
+    }
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem("reportesDiarios", JSON.stringify(reportesDiarios));
-  }, [reportesDiarios]);
 
   useEffect(() => {
     localStorage.setItem("equiposSugeridos", JSON.stringify(equiposSugeridos));
   }, [equiposSugeridos]);
-
-  // Funciones auxiliares para agrupación por fecha
-  const agruparReportesPorFecha = (reportes) => {
-    return reportes.reduce((grupos, reporte) => {
-      const fecha = reporte.fecha_reporte;
-      if (!grupos[fecha]) {
-        grupos[fecha] = [];
-      }
-      grupos[fecha].push(reporte);
-      return grupos;
-    }, {});
-  };
-
-  const toggleFecha = (fecha) => {
-    setFechasExpandidas(prev => ({
-      ...prev,
-      [fecha]: !prev[fecha]
-    }));
-  };
 
   const formatearFecha = (fecha) => {
     const opciones = { 
@@ -137,11 +215,18 @@ function App() {
       month: 'long', 
       day: 'numeric' 
     };
-    return new Date(fecha + 'T00:00:00').toLocaleDateString('es-ES', opciones);
-  };
-
-  const calcularTiempoDia = (reportes) => {
-    return reportes.reduce((total, reporte) => total + reporte.tiempo, 0);
+    
+    // Crear la fecha correctamente
+    let fechaObj;
+    if (fecha.includes('T')) {
+      // Si ya tiene formato ISO
+      fechaObj = new Date(fecha);
+    } else {
+      // Si es solo fecha (YYYY-MM-DD)
+      fechaObj = new Date(fecha + 'T00:00:00');
+    }
+    
+    return fechaObj.toLocaleDateString('es-ES', opciones);
   };
 
   const validar = () => {
@@ -150,7 +235,7 @@ function App() {
     if (!form.tecnico) nuevosErrores.tecnico = "Selecciona un técnico.";
     if (!form.planta) nuevosErrores.planta = "Selecciona una planta.";
     if (!form.equipo || form.equipo.trim().length < 3)
-      nuevosErrores.equipo = "El equipo debe tener al menos 3 caracteres.";
+      nuevosErrores.equipo = "La OT debe tener al menos 3 caracteres.";
     if (!form.reporte || form.reporte.trim().length < 10)
       nuevosErrores.reporte = "El reporte debe tener al menos 10 caracteres.";
     else if (form.reporte.length > 250)
@@ -177,13 +262,18 @@ function App() {
 
     // Limitar longitud del reporte a 250 caracteres
     if (name === "reporte" && value.length > 250) {
-      return; // No actualizar si excede 250 caracteres
+      return;
     }
 
     setForm((prev) => ({
       ...prev,
       [name]: type === "checkbox" ? checked : value,
     }));
+
+    // Si cambió el técnico, recargar reportes
+    if (name === "tecnico") {
+      cargarReportesDesdeSupabase(value);
+    }
   };
 
   const tiempoDecimal = (horas, minutos) => {
@@ -201,11 +291,11 @@ function App() {
     }
 
     try {
-      setGuardando(true); // Deshabilitar botón para evitar duplicados
+      setGuardando(true);
       localStorage.setItem("tecnico", form.tecnico);
       localStorage.setItem("planta", form.planta);
 
-      // Guardar equipo en sugeridos si no está ya
+      // Guardar OT en sugeridos si no está ya
       if (
         form.equipo.trim() &&
         !equiposSugeridos.includes(form.equipo.trim())
@@ -215,7 +305,7 @@ function App() {
         localStorage.setItem("equiposSugeridos", JSON.stringify(nuevosEquipos));
       }
 
-      const nuevoReporte = {
+      const reporteData = {
         ...form,
         tiempo: tiempoDecimal(
           Number(form.tiempo_horas),
@@ -223,12 +313,21 @@ function App() {
         ),
       };
 
-      await axios.post("/api/reportes", nuevoReporte);
+      if (reporteEditando) {
+        // Actualizar reporte existente
+        await axios.put(`/api/reportes/${reporteEditando}`, reporteData);
+        setMensaje("✅ Reporte actualizado con éxito!");
+        setReporteEditando(null);
+      } else {
+        // Crear nuevo reporte
+        await axios.post("/api/reportes", reporteData);
+        setMensaje("✅ Registro guardado con éxito!");
+      }
 
-      setReportesDiarios((prevReportes) => [...prevReportes, nuevoReporte]);
+      // Recargar reportes desde Supabase después de guardar
+      await cargarReportesDesdeSupabase();
 
-      setMensaje("✅ Registro guardado con éxito!");
-      const hoy = new Date().toLocaleDateString('en-CA'); // Fecha local corregida
+      const hoy = new Date().toLocaleDateString('en-CA');
 
       setForm({
         fecha_reporte: hoy,
@@ -243,13 +342,12 @@ function App() {
       setErrores({});
     } catch (error) {
       setMensaje(
-        "❌ Error al guardar registro. Por favor, verifica tu conexión y vuelve a intentarlo."
+        "❌ Error al guardar reporte. Por favor, verifica tu conexión y vuelve a intentarlo."
       );
-      // Guardar datos en localStorage para persistencia
       localStorage.setItem("formBackup", JSON.stringify(form));
       console.error(error);
     } finally {
-      setGuardando(false); // Habilitar botón nuevamente
+      setGuardando(false);
     }
   };
 
@@ -313,6 +411,18 @@ function App() {
       justifyContent: "center",
       alignItems: "center",
     },
+    botonSecundario: {
+      width: "100%",
+      padding: 8,
+      fontSize: 14,
+      fontWeight: "bold",
+      backgroundColor: "#6c757d",
+      color: "white",
+      border: "none",
+      borderRadius: 5,
+      cursor: "pointer",
+      marginTop: 5,
+    },
     mensaje: {
       textAlign: "center",
       marginTop: 20,
@@ -336,43 +446,69 @@ function App() {
       paddingTop: 10,
     },
     reporteItem: {
-      marginBottom: 5,
-      padding: 8,
-      backgroundColor: "#f9f9f9",
-      borderRadius: 4,
-      fontSize: 14,
-    },
-    grupoFecha: {
       marginBottom: 15,
-      border: "1px solid #e0e0e0",
+      padding: 12,
+      backgroundColor: "#f9f9f9",
       borderRadius: 8,
-      overflow: "hidden",
+      fontSize: 14,
+      border: "1px solid #e0e0e0",
     },
-    headerFecha: {
-      padding: 15,
-      backgroundColor: "#f8f9fa",
-      cursor: "pointer",
+    botonesReporte: {
       display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      borderBottom: "1px solid #e0e0e0",
-      transition: "background-color 0.2s ease",
+      gap: 5,
+      marginTop: 8,
     },
-    reportesDia: {
-      padding: 10,
-      backgroundColor: "#fff",
-    },
-    separadorFecha: {
+    botonPequeno: {
+      padding: "4px 8px",
       fontSize: 12,
-      color: "#666",
-      marginTop: 4,
-      fontWeight: "normal",
+      border: "none",
+      borderRadius: 3,
+      cursor: "pointer",
+      fontWeight: "bold",
+    },
+    botonEditar: {
+      backgroundColor: "#ffc107",
+      color: "#000",
+    },
+    botonEliminar: {
+      backgroundColor: "#dc3545",
+      color: "white",
     },
   };
 
   return (
     <div style={estilos.contenedor}>
       <h2>Reporte Diario de Mantenimiento</h2>
+      
+      {reporteEditando && (
+        <div style={{ 
+          padding: 10, 
+          backgroundColor: "#fff3cd", 
+          border: "1px solid #ffeaa7", 
+          borderRadius: 5, 
+          marginBottom: 15,
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center"
+        }}>
+          <span>📝 Editando reporte</span>
+          <button 
+            onClick={cancelarEdicion}
+            style={{
+              padding: "2px 8px",
+              fontSize: 12,
+              backgroundColor: "#6c757d",
+              color: "white",
+              border: "none",
+              borderRadius: 3,
+              cursor: "pointer"
+            }}
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} aria-label="Formulario de reporte diario">
         <label style={estilos.etiqueta} htmlFor="fecha_reporte">
           Fecha del trabajo:
@@ -457,7 +593,7 @@ function App() {
           value={form.equipo}
           onChange={handleChange}
           list="equipos-list"
-          placeholder="Ingresa el nº de OT, si se hizo sin OT, pon SIN OT"
+          placeholder="Ingresa el nº de OT, si se hizo sin ot, pon: SIN OT"
           aria-required="true"
           aria-invalid={errores.equipo ? "true" : "false"}
         />
@@ -478,7 +614,7 @@ function App() {
         <textarea
           style={{
             ...estilos.input,
-            height: 100,
+            height: 120,
             ...(errores.reporte ? estilos.errorInput : {}),
           }}
           id="reporte"
@@ -486,6 +622,7 @@ function App() {
           value={form.reporte}
           onChange={handleChange}
           maxLength={250}
+          placeholder="Usa la formula: Encontré+ Hice+ Resultado+ Recomendación. Ej: Encontré filtro Y sucio en un 80% y presion 1600. Limpié el filtro. La presion llego a 2000. Por favor comprar las tuercas debido a desgaste."
           aria-required="true"
           aria-invalid={errores.reporte ? "true" : "false"}
           aria-describedby="reporteHelp"
@@ -565,20 +702,31 @@ function App() {
         >
           {guardando ? (
             <>
-              Guardando...
+              {reporteEditando ? "Actualizando..." : "Guardando..."}
               <Spinner />
             </>
           ) : (
-            "Guardar registro"
+            reporteEditando ? "Actualizar reporte" : "Guardar reporte"
           )}
         </button>
+
+        {reporteEditando && (
+          <button
+            type="button"
+            onClick={cancelarEdicion}
+            style={estilos.botonSecundario}
+          >
+            Cancelar edición
+          </button>
+        )}
       </form>
 
       {mensaje && (
         <div
           style={{
             ...estilos.mensaje,
-            color: mensaje.includes("éxito") ? "green" : "red",
+            color: mensaje.includes("éxito") || mensaje.includes("correctamente") ? "green" : 
+                   mensaje.includes("Editando") ? "#856404" : "red",
           }}
           role="alert"
           aria-live="assertive"
@@ -588,41 +736,72 @@ function App() {
       )}
 
       <div style={estilos.listaReportes}>
-        <h3>Historial de Reportes</h3>
-        <p></p>
+        <h3>Últimos Reportes {form.tecnico && `- ${form.tecnico}`}</h3>
 
-        {reportesDiarios.length === 0 && <p>No hay reportes aún.</p>}
+        {!form.tecnico && (
+          <p style={{ color: '#666', fontStyle: 'italic' }}>
+            Selecciona un técnico para ver su historial de reportes
+          </p>
+        )}
 
-        {Object.entries(agruparReportesPorFecha(reportesDiarios))
-          .sort(([a], [b]) => new Date(b) - new Date(a))
-          .map(([fecha, reportes]) => (
-            <div key={fecha} style={estilos.grupoFecha}>
-              <div 
-                style={estilos.headerFecha}
-                onClick={() => toggleFecha(fecha)}
-              >
-                <div>
-                  <strong>{formatearFecha(fecha)}</strong>
-                  <div style={estilos.separadorFecha}>
-                    {reportes.length} trabajo{reportes.length !== 1 ? 's' : ''} - {formatTime(calcularTiempoDia(reportes))}
-                  </div>
+        {form.tecnico && reportesDiarios.length === 0 && (
+          <p>No hay reportes para {form.tecnico}.</p>
+        )}
+
+        {reportesDiarios.length > 0 && (
+          <div>
+            {reportesDiarios.map((reporte, index) => (
+              <div key={reporte.id || index} style={estilos.reporteItem}>
+                <div style={{ fontWeight: 'bold', marginBottom: 5 }}>
+                  {formatearFecha(reporte.fecha_reporte)} - ({reporte.planta}) {iconoEstado(reporte.terminado)}
                 </div>
-                <span style={{ fontSize: 18 }}>
-                  {fechasExpandidas[fecha] ? '▼' : '▶'}
-                </span>
+                <div style={{ marginBottom: 3 }}>
+                  <strong>OT:</strong> {reporte.equipo}
+                </div>
+                <div style={{ marginBottom: 3 }}>
+                  {reporte.reporte}
+                </div>
+                <div style={{ fontSize: 12, color: '#666' }}>
+                  Tiempo: {formatTime(reporte.tiempo)}
+                </div>
+                
+                <div style={estilos.botonesReporte}>
+                  <button
+                    onClick={() => editarReporte(reporte)}
+                    style={{
+                      ...estilos.botonPequeno,
+                      ...estilos.botonEditar,
+                    }}
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button
+                    onClick={() => eliminarReporte(reporte.id)}
+                    style={{
+                      ...estilos.botonPequeno,
+                      ...estilos.botonEliminar,
+                    }}
+                  >
+                    🗑️ Eliminar
+                  </button>
+                </div>
               </div>
-
-              {fechasExpandidas[fecha] && (
-                <div style={estilos.reportesDia}>
-                  {reportes.map((reporte, index) => (
-                    <div key={index} style={estilos.reporteItem}>
-                      ({reporte.planta}) {reporte.reporte} {iconoEstado(reporte.terminado)} - {formatTime(reporte.tiempo)}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+            ))}
+            
+            {reportesDiarios.length > 0 && (
+              <div style={{ 
+                marginTop: 15, 
+                padding: 10, 
+                backgroundColor: '#f0f8ff', 
+                borderRadius: 5,
+                textAlign: 'center',
+                fontWeight: 'bold'
+              }}>
+                Total de tiempo: {formatTime(calcularTiempoTotal())} | {reportesDiarios.length} reporte{reportesDiarios.length !== 1 ? 's' : ''}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
