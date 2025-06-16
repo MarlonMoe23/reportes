@@ -614,7 +614,7 @@ const editarReporte = (reporte) => {
         <textarea
           style={{
             ...estilos.input,
-            height: 120,
+            height: 200,
             ...(errores.reporte ? estilos.errorInput : {}),
           }}
           id="reporte"
