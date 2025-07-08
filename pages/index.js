@@ -238,8 +238,8 @@ const editarReporte = (reporte) => {
       nuevosErrores.equipo = "La OT debe tener al menos 3 caracteres.";
     if (!form.reporte || form.reporte.trim().length < 10)
       nuevosErrores.reporte = "El reporte debe tener al menos 10 caracteres.";
-    else if (form.reporte.length > 250)
-      nuevosErrores.reporte = "El reporte no puede exceder 250 caracteres.";
+    else if (form.reporte.length > 500)
+      nuevosErrores.reporte = "El reporte no puede exceder 500 caracteres.";
 
     const horas = Number(form.tiempo_horas);
     const minutos = Number(form.tiempo_minutos);
@@ -260,8 +260,8 @@ const editarReporte = (reporte) => {
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    // Limitar longitud del reporte a 250 caracteres
-    if (name === "reporte" && value.length > 250) {
+    // Limitar longitud del reporte a 500 caracteres
+    if (name === "reporte" && value.length > 500) {
       return;
     }
 
@@ -621,14 +621,14 @@ const editarReporte = (reporte) => {
           name="reporte"
           value={form.reporte}
           onChange={handleChange}
-          maxLength={250}
+          maxLength={500}
           placeholder="Usa la formula: Encontré+ Hice+ Resultado+ Recomendación. Ej: Encontré filtro Y sucio en un 80% y presion 1600. Limpié el filtro. La presion llego a 2000. Por favor comprar las tuercas debido a desgaste."
           aria-required="true"
           aria-invalid={errores.reporte ? "true" : "false"}
           aria-describedby="reporteHelp"
         />
         <div id="reporteHelp" style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
-          {form.reporte.length} / 250 caracteres
+          {form.reporte.length} / 500 caracteres
         </div>
         {errores.reporte && (
           <div style={estilos.textoError} role="alert">
