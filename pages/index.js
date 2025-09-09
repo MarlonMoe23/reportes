@@ -3,15 +3,14 @@ import axios from "axios";
 
 function App() {
   const tecnicos = [
+    "Alex Haro",
     "Carlos Cisneros",
     "César Sánchez",
-    "Cristian Lara",
     "Juan Carrión",
     "Miguel Lozada",
     "Roberto Córdova",
 
     "---",
-    "Alex Haro",
     "Angelo Porras",
     "Dario Ojeda",
     "Edgar Ormaza",
